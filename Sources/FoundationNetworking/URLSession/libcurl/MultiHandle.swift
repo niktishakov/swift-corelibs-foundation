@@ -84,7 +84,7 @@ extension URLSession._MultiHandle {
 internal func _probeLog(_ s: @autoclosure () -> String) {
     guard getenv("PROBE_TIMEOUT_LOG") != nil else { return }
     var ts = timespec(); clock_gettime(CLOCK_MONOTONIC, &ts)
-    let line = "TOLOG \(ts.tv_sec).\(String(ts.tv_nsec / 1_000_000 + 1000).dropFirst()) tid=\(gettid()) \(s())\n"
+    let line = "TOLOG \(ts.tv_sec).\(String(ts.tv_nsec / 1_000_000 + 1000).dropFirst()) \(s())\n"
     _ = line.withCString { write(2, $0, strlen($0)) }
 }
 internal func _probeNow() -> Double { var ts = timespec(); clock_gettime(CLOCK_MONOTONIC, &ts); return Double(ts.tv_sec) + Double(ts.tv_nsec) / 1e9 }
