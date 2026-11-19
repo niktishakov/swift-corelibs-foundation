@@ -214,10 +214,10 @@ extension _EasyHandle {
         // Downloadable here: https://curl.haxx.se/ca/cacert.pem
         if let caInfo = getenv("URLSessionCertificateAuthorityInfoFile")  {
             if String(cString: caInfo) == "INSECURE_SSL_NO_VERIFY" {
-                try! CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionSSL_VERIFYPEER, 0).asError()
+                try? CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionSSL_VERIFYPEER, 0).asError() // PROBE ONLY: curl without SSL
             }
             else {
-                try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError()
+                try? CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError() // PROBE ONLY: curl without SSL
             }
             return
         } else {
@@ -234,7 +234,7 @@ extension _EasyHandle {
                                                   isDirectory: &isDirectory)
                         && isDirectory.boolValue {
                     path.withCString { pathPtr in
-                        try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAPATH, UnsafeMutablePointer(mutating: pathPtr)).asError()
+                        try? CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAPATH, UnsafeMutablePointer(mutating: pathPtr)).asError() // PROBE ONLY: curl without SSL
                     }
                     return
                 }
