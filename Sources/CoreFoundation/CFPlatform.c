@@ -1796,7 +1796,7 @@ CF_CROSS_PLATFORM_EXPORT int _CFThreadGetName(char *buf, int length) {
 #elif TARGET_OS_ANDROID
     // Android did not get pthread_getname_np until API 26, but prctl seems to
     // return at most 15 chars of the name + null terminator.
-    char *buffer[16] = {0};
+    char buffer[16] = {0};
     if (prctl(PR_GET_NAME, buffer, 0, 0, 0) != 0) {
         return -1;
     }
