@@ -1398,7 +1398,7 @@ class TestNSGeometry : XCTestCase {
     }
 
     func _CGFloat(_ float: CGFloat, equalsToCGFloat float2: CGFloat, withPrecision precision: CGFloat.NativeType = .ulpOfOne) -> Bool {
-        return fabs(float.native - float2.native) <= precision
+        return abs(float.native - float2.native) <= precision
     }
 
 }

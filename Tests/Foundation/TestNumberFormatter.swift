@@ -424,7 +424,7 @@ class TestNumberFormatter: XCTestCase {
         numberFormatter.plusSign = sign
         XCTAssertEqual(numberFormatter.plusSign, sign)
 
-        let formattedString = numberFormatter.string(from: 420000000000000000)
+        let formattedString = numberFormatter.string(from: NSNumber(value: Int64(420000000000000000)))
         XCTAssertNotNil(formattedString)
         XCTAssertEqual(formattedString, "4.2E👍17")
 
