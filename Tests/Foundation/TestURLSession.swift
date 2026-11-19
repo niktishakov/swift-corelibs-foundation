@@ -33,7 +33,8 @@ final class TestURLSession: LoopbackServerTest, @unchecked Sendable {
 
 // rdar://162419667
 // Fails on Amazon Linux 2 and UBI 9 (test_dataTaskWithURLRequest returned an unexpected result)
-#if !os(Linux)
+// The libcurl in the Swift SDK for Android is built without brotli.
+#if !os(Linux) && !os(Android)
     func test_dataTaskWithAcceptEncoding() async {
         let urlString = "http://127.0.0.1:\(TestURLSession.serverPort)/accept-encoding"
         let url = URL(string: urlString)!

@@ -110,7 +110,7 @@ class TestXMLParser : XCTestCase {
         // These don't work, it may just be an issue with the `encoding=xxx`.
         //   - .nextstep, .utf32LittleEndian
         var encodings: [String.Encoding] = [.utf16LittleEndian, .utf16BigEndian,  .utf8]
-#if !os(Windows)
+#if !os(Windows) && !os(Android)
         // libxml requires iconv support for UTF32
         encodings.append(.utf32BigEndian)
 #endif

@@ -572,7 +572,12 @@ class TestProcess : XCTestCase {
         let task = Process()
 
         guard let url = testBundle(executable: true).url(forAuxiliaryExecutable: "plutil") else {
+#if os(Android)
+            // The Android emulator tests copy the test runner to the device, but not plutil.
+            throw XCTSkip("plutil is not on the device")
+#else
             throw Error.ExternalBinaryNotFound("plutil")
+#endif
         }
 
         task.executableURL = url
