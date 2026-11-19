@@ -606,6 +606,7 @@ fileprivate extension _EasyHandle {
         try! CFURLSession_easy_setopt_wc(rawHandle, CFURLSessionOptionWRITEFUNCTION) { (data: UnsafeMutablePointer<Int8>, size: Int, nmemb: Int, userdata: UnsafeMutableRawPointer?) -> Int in
             guard let handle = _EasyHandle.from(callbackUserData: userdata) else { return 0 }
             defer {
+                _probeLog("resetTimer from write")
                 handle.resetTimer()
             }
             return handle.didReceive(data: data, size: size, nmemb: nmemb)
@@ -616,6 +617,7 @@ fileprivate extension _EasyHandle {
         try! CFURLSession_easy_setopt_wc(rawHandle, CFURLSessionOptionREADFUNCTION) { (data: UnsafeMutablePointer<Int8>, size: Int, nmemb: Int, userdata: UnsafeMutableRawPointer?) -> Int in
             guard let handle = _EasyHandle.from(callbackUserData: userdata) else { return 0 }
             defer {
+                _probeLog("resetTimer from read")
                 handle.resetTimer()
             }
             return handle.fill(writeBuffer: data, size: size, nmemb: nmemb)
@@ -626,6 +628,7 @@ fileprivate extension _EasyHandle {
         try! CFURLSession_easy_setopt_wc(rawHandle, CFURLSessionOptionHEADERFUNCTION) { (data: UnsafeMutablePointer<Int8>, size: Int, nmemb: Int, userdata: UnsafeMutableRawPointer?) -> Int in
             guard let handle = _EasyHandle.from(callbackUserData: userdata) else { return 0 }
             defer {
+                _probeLog("resetTimer from header")
                 handle.resetTimer()
             }
             var length = Double()

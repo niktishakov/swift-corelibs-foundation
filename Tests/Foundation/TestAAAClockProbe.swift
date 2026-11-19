@@ -57,4 +57,29 @@ class TestAAAClockProbe: XCTestCase {
         }
         print("CLOCKPROBE threads RAW-MONOTONIC min=\(lo.min()!) max=\(hi.max()!)")
     }
+
+    // How late does a 1 s timer on a serial queue fire while N global() workers sleep for 3 s?
+    func test_dispatchTimerProbe() {
+        print("CLOCKPROBE cpus online=\(sysconf(Int32(_SC_NPROCESSORS_ONLN))) conf=\(sysconf(Int32(_SC_NPROCESSORS_CONF)))")
+        for blocked in [0, 1, 2, 3, 4, 8] {
+            let release = DispatchSemaphore(value: 0)
+            let started = DispatchGroup()
+            for _ in 0..<blocked {
+                started.enter()
+                DispatchQueue.global().async { started.leave(); Thread.sleep(forTimeInterval: 3) }
+            }
+            let allStarted = started.wait(timeout: .now() + 3) == .success
+            let q = DispatchQueue(label: "probe.timer", target: DispatchQueue(label: "probe.shared"))
+            let t0 = read(CLOCK_MONOTONIC)
+            nonisolated(unsafe) var firedAt = -1.0
+            let timer = DispatchSource.makeTimerSource(queue: q)
+            timer.schedule(deadline: .now() + .milliseconds(999), repeating: .never, leeway: .milliseconds(1))
+            timer.setEventHandler { firedAt = read(CLOCK_MONOTONIC) - t0; release.signal() }
+            timer.resume()
+            let ok = release.wait(timeout: .now() + 5) == .success
+            timer.cancel()
+            print("CLOCKPROBE timer blocked=\(blocked) allStarted=\(allStarted) fired=\(ok) after=\(firedAt) s")
+            Thread.sleep(forTimeInterval: 3.2)
+        }
+    }
 }
