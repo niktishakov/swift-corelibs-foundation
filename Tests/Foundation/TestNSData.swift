@@ -259,6 +259,9 @@ class TestNSData: XCTestCase {
     func test_writeToURLSpecialFile() {
 #if os(Windows)
         let url = URL(fileURLWithPath: "CON")
+#elseif os(Android)
+        // Under `adb shell`, opening /dev/stdout fails with EACCES.
+        let url = URL(fileURLWithPath: "/dev/null")
 #else
         let url = URL(fileURLWithPath: "/dev/stdout")
 #endif
