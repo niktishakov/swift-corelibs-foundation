@@ -594,7 +594,16 @@ extension _SocketSources {
         // pending operation is finished (if there is none, submitted work item is performed
         // immediately).
         // Also, CURL may request unregister even before we perform any postponed work,
-        // so we have to cancel such work in such case. See 
+        // so we have to cancel such work in such case. See
+        //
+        // CURL can also change what it waits for without an unregister, for example
+        // from write (sending the request) to read (waiting for the response).
+        // A source that CURL no longer asks for keeps firing, because a connected
+        // socket is almost always writable, and runs `handler` in a loop.
+        // So we tear down the sources and create only the ones in `action`.
+        if (readSource != nil && !action.needsReadSource) || (writeSource != nil && !action.needsWriteSource) {
+            tearDown(handle: handle, socket: socket, queue: queue)
+        }
         let createSources = DispatchWorkItem {
             if action.needsReadSource {
                 self.createReadSource(socket: socket, queue: queue, handler: handler)

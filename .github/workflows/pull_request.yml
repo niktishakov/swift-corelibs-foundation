@@ -13,8 +13,9 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.18
     with:
       linux_swift_versions: '["nightly-main"]'
+      linux_os_versions: '["jammy", "noble"]'
       enable_windows_checks: false
-      enable_cross_pr_testing: true
+      enable_cross_pr_testing: false
 
   soundness:
     name: Soundness
