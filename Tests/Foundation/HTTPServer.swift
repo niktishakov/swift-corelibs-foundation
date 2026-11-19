@@ -685,7 +685,9 @@ public class TestURLSessionServer: CustomStringConvertible {
         debugLog("request: \(req)")
         if let value = req.getHeader(for: "x-pause") {
             if let wait = Double(value), wait > 0 {
+                if getenv("PROBE_TIMEOUT_LOG") != nil { print("TOLOG server x-pause start \(wait) s, \(Date())") }
                 Thread.sleep(forTimeInterval: wait)
+                if getenv("PROBE_TIMEOUT_LOG") != nil { print("TOLOG server x-pause end, \(Date())") }
             }
         }
 

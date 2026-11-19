@@ -214,10 +214,10 @@ extension _EasyHandle {
         // Downloadable here: https://curl.haxx.se/ca/cacert.pem
         if let caInfo = getenv("URLSessionCertificateAuthorityInfoFile")  {
             if String(cString: caInfo) == "INSECURE_SSL_NO_VERIFY" {
-                try! CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionSSL_VERIFYPEER, 0).asError()
+                try? CFURLSession_easy_setopt_long(rawHandle, CFURLSessionOptionSSL_VERIFYPEER, 0).asError() // PROBE ONLY: curl without SSL
             }
             else {
-                try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError()
+                try? CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAINFO, caInfo).asError() // PROBE ONLY: curl without SSL
             }
             return
         } else {
@@ -234,7 +234,7 @@ extension _EasyHandle {
                                                   isDirectory: &isDirectory)
                         && isDirectory.boolValue {
                     path.withCString { pathPtr in
-                        try! CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAPATH, UnsafeMutablePointer(mutating: pathPtr)).asError()
+                        try? CFURLSession_easy_setopt_ptr(rawHandle, CFURLSessionOptionCAPATH, UnsafeMutablePointer(mutating: pathPtr)).asError() // PROBE ONLY: curl without SSL
                     }
                     return
                 }
@@ -606,6 +606,7 @@ fileprivate extension _EasyHandle {
         try! CFURLSession_easy_setopt_wc(rawHandle, CFURLSessionOptionWRITEFUNCTION) { (data: UnsafeMutablePointer<Int8>, size: Int, nmemb: Int, userdata: UnsafeMutableRawPointer?) -> Int in
             guard let handle = _EasyHandle.from(callbackUserData: userdata) else { return 0 }
             defer {
+                _probeLog("resetTimer from write")
                 handle.resetTimer()
             }
             return handle.didReceive(data: data, size: size, nmemb: nmemb)
@@ -616,6 +617,7 @@ fileprivate extension _EasyHandle {
         try! CFURLSession_easy_setopt_wc(rawHandle, CFURLSessionOptionREADFUNCTION) { (data: UnsafeMutablePointer<Int8>, size: Int, nmemb: Int, userdata: UnsafeMutableRawPointer?) -> Int in
             guard let handle = _EasyHandle.from(callbackUserData: userdata) else { return 0 }
             defer {
+                _probeLog("resetTimer from read")
                 handle.resetTimer()
             }
             return handle.fill(writeBuffer: data, size: size, nmemb: nmemb)
@@ -626,6 +628,7 @@ fileprivate extension _EasyHandle {
         try! CFURLSession_easy_setopt_wc(rawHandle, CFURLSessionOptionHEADERFUNCTION) { (data: UnsafeMutablePointer<Int8>, size: Int, nmemb: Int, userdata: UnsafeMutableRawPointer?) -> Int in
             guard let handle = _EasyHandle.from(callbackUserData: userdata) else { return 0 }
             defer {
+                _probeLog("resetTimer from header")
                 handle.resetTimer()
             }
             var length = Double()

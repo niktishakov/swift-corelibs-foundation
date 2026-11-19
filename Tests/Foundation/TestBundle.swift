@@ -43,7 +43,12 @@ internal func testBundleName() -> String {
 }
 
 internal func xdgTestHelperURL() throws -> URL {
-    testBundle().bundleURL.deletingLastPathComponent().appendingPathComponent("xdgTestHelper")
+    let url = testBundle().bundleURL.deletingLastPathComponent().appendingPathComponent("xdgTestHelper")
+#if os(Android)
+    // The Android emulator tests copy the test runner to the device, but not xdgTestHelper.
+    try XCTSkipUnless(FileManager.default.isExecutableFile(atPath: url.path), "xdgTestHelper is not on the device")
+#endif
+    return url
 }
 
 

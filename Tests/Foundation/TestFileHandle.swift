@@ -620,6 +620,9 @@ class TestFileHandle : XCTestCase {
         // .synchronize() on a special file shouldn't fail
 #if os(Windows)
         let fh = try XCTUnwrap(FileHandle(forWritingAtPath: "CON"))
+#elseif os(Android)
+        // Under `adb shell`, opening /dev/stdout fails with EACCES.
+        let fh = try XCTUnwrap(FileHandle(forWritingAtPath: "/dev/null"))
 #else
         let fh = try XCTUnwrap(FileHandle(forWritingAtPath: "/dev/stdout"))
 #endif

@@ -1796,7 +1796,7 @@ CF_CROSS_PLATFORM_EXPORT int _CFThreadGetName(char *buf, int length) {
 #elif TARGET_OS_ANDROID
     // Android did not get pthread_getname_np until API 26, but prctl seems to
     // return at most 15 chars of the name + null terminator.
-    char *buffer[16] = {0};
+    char buffer[16] = {0};
     if (prctl(PR_GET_NAME, buffer, 0, 0, 0) != 0) {
         return -1;
     }
@@ -2184,11 +2184,8 @@ static int _CFPosixSpawnImplPre28(pid_t *_CF_RESTRICT pid, const char *_CF_RESTR
                     if (dup2(fd, new_fd) == -1) _exit(127);
                 }
             } else if (actions->actions[idx].type == _CFPosixSpawnFileActionClosePre28) {
-                if (close(action->closeAction.filedes) == -1) {
-                    if (errno == EBADF) {
-                        _exit(127);
-                    }
-                }
+                // MATCHING BIONIC: failure to close is ignored.
+                close(action->closeAction.filedes);
             }
         }
     }

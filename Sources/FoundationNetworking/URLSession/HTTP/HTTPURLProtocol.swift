@@ -415,6 +415,7 @@ internal class _HTTPURLProtocol: _NativeProtocol {
         // Access to self is protected by the work item executing on the correct queue
         nonisolated(unsafe) let nonisolatedSelf = self
         let timeoutHandler = DispatchWorkItem {
+            _probeLog("HTTP timeoutHandler state=\(nonisolatedSelf.internalState)")
             // If a timeout occurred while waiting for a redirect completion handler to be called by
             // the delegate then terminate the task but DONT set the error to NSURLErrorTimedOut.
             // This matches Darwin.

@@ -33,7 +33,8 @@ final class TestURLSession: LoopbackServerTest, @unchecked Sendable {
 
 // rdar://162419667
 // Fails on Amazon Linux 2 and UBI 9 (test_dataTaskWithURLRequest returned an unexpected result)
-#if !os(Linux)
+// The libcurl in the Swift SDK for Android is built without brotli.
+#if !os(Linux) && !os(Android)
     func test_dataTaskWithAcceptEncoding() async {
         let urlString = "http://127.0.0.1:\(TestURLSession.serverPort)/accept-encoding"
         let url = URL(string: urlString)!
@@ -650,6 +651,9 @@ final class TestURLSession: LoopbackServerTest, @unchecked Sendable {
     }
     
     func test_httpTimeout() async {
+        setenv("PROBE_TIMEOUT_LOG", "1", 1)
+        defer { unsetenv("PROBE_TIMEOUT_LOG") }
+        print("TOLOG test start \(Date())")
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 10
         let urlString = "http://127.0.0.1:\(TestURLSession.serverPort)/Peru"
@@ -661,6 +665,29 @@ final class TestURLSession: LoopbackServerTest, @unchecked Sendable {
         let task = session.dataTask(with: req) { (data, _, error) -> Void in
             defer { expect.fulfill() }
             XCTAssertEqual((error as? URLError)?.code, .timedOut, "Task should fail with URLError.timedOut error")
+        }
+        task.resume()
+        waitForExpectations(timeout: 30)
+    }
+
+    // PROBE ONLY: the same request without dropping the unused write source; logs, no assertions.
+    func test_httpTimeoutNoCancelProbe() async {
+        setenv("PROBE_TIMEOUT_LOG", "1", 1)
+        setenv("PROBE_NO_CANCEL", "1", 1)
+        defer { unsetenv("PROBE_TIMEOUT_LOG"); unsetenv("PROBE_NO_CANCEL") }
+        print("TOLOG nocancel test start \(Date())")
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10
+        let urlString = "http://127.0.0.1:\(TestURLSession.serverPort)/Peru"
+        let session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
+        let expect = expectation(description: "GET \(urlString): nocancel probe")
+        var req = URLRequest(url: URL(string: urlString)!)
+        req.setValue("3", forHTTPHeaderField: "x-pause")
+        req.timeoutInterval = 1
+        let start = Date()
+        let task = session.dataTask(with: req) { (data, _, error) -> Void in
+            print("TOLOG nocancel result after \(Date().timeIntervalSince(start)) s: error=\(String(describing: (error as? URLError)?.code))")
+            expect.fulfill()
         }
         task.resume()
         waitForExpectations(timeout: 30)

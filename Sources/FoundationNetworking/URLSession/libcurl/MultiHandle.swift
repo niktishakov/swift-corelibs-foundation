@@ -80,6 +80,15 @@ extension URLSession._MultiHandle {
     }
 }
 
+// PROBE ONLY: timeline logs, on while PROBE_TIMEOUT_LOG is set.
+internal func _probeLog(_ s: @autoclosure () -> String) {
+    guard getenv("PROBE_TIMEOUT_LOG") != nil else { return }
+    var ts = timespec(); clock_gettime(CLOCK_MONOTONIC, &ts)
+    let line = "TOLOG \(ts.tv_sec).\(String(ts.tv_nsec / 1_000_000 + 1000).dropFirst()) \(s())\n"
+    _ = line.withCString { write(2, $0, strlen($0)) }
+}
+internal func _probeNow() -> Double { var ts = timespec(); clock_gettime(CLOCK_MONOTONIC, &ts); return Double(ts.tv_sec) + Double(ts.tv_nsec) / 1e9 }
+
 fileprivate extension URLSession._MultiHandle {
     static func from(callbackUserData userdata: UnsafeMutableRawPointer?) -> URLSession._MultiHandle? {
         guard let userdata = userdata else { return nil }
@@ -120,6 +129,7 @@ fileprivate extension URLSession._MultiHandle {
         // a `SocketSources` which we in turn store inside libcurl's multi handle
         // by means of curl_multi_assign() -- we retain the object fist.
         let action = _SocketRegisterAction(rawValue: CFURLSessionPoll(value: what))
+        _probeLog("socketfunction fd=\(socket) what=\(what) action=\(action)")
         var socketSources = _SocketSources.from(socketSourcePtr: socketSourcePtr)
         if socketSources == nil && action.needsSource {
             let s = _SocketSources()
@@ -303,7 +313,10 @@ fileprivate extension URLSession._MultiHandle {
         var runningHandlesCount = Int32(0)
         try lockingForSSLLibraryIfNeeded {
             // Triggers certificate loading, SSL handshake, etc.
+            let t0 = _probeNow()
             try CFURLSessionMultiHandleAction(rawHandle, socket, 0, &runningHandlesCount).asError()
+            let dt = _probeNow() - t0
+            if dt > 0.01 || socket == CFURLSessionSocketTimeout { _probeLog("socket_action fd=\(socket) running=\(runningHandlesCount) took=\(Int(dt * 1000)) ms") }
         }
         //TODO: Do we remove the timeout timer here if / when runningHandles == 0 ?
         readMessages()
@@ -460,16 +473,20 @@ class _TimeoutSource {
         self.queue = queue
         self.handler = handler
         self.milliseconds = milliseconds
+        _probeLog("timeoutSource init ms=\(milliseconds) queue=\(queue.label)")
         self.rawSource = DispatchSource.makeTimerSource(queue: queue) as! DispatchSource
         
         let delay = UInt64(max(1, milliseconds - 1)) 
         let start = DispatchTime.now() + DispatchTimeInterval.milliseconds(Int(delay))
         
         rawSource.schedule(deadline: start, repeating: .never, leeway: (milliseconds == 1) ? .microseconds(Int(1)) : .milliseconds(Int(1)))
-        rawSource.setEventHandler(handler: handler)
+        let ms = milliseconds
+        let created = _probeNow()
+        rawSource.setEventHandler { _probeLog("timeoutSource FIRE ms=\(ms) after=\(Int((_probeNow() - created) * 1000)) ms"); handler.perform() }
         rawSource.resume() 
     }
     deinit {
+        _probeLog("timeoutSource deinit ms=\(milliseconds)")
         rawSource.cancel()
     }
 }
@@ -538,7 +555,9 @@ fileprivate class _SocketSources {
 #else
         let s = DispatchSource.makeReadSource(fileDescriptor: socket, queue: queue)
 #endif
-        s.setEventHandler(handler: handler)
+        _probeLog("create READ source fd=\(socket)")
+        nonisolated(unsafe) var n = 0
+        s.setEventHandler { n += 1; if n % 20000 == 1 { _probeLog("READ source fired fd=\(socket) n=\(n)") }; handler.perform() }
         readSource = s as? DispatchSource
         s.resume()
     }
@@ -550,7 +569,9 @@ fileprivate class _SocketSources {
 #else
         let s = DispatchSource.makeWriteSource(fileDescriptor: socket, queue: queue)
 #endif
-        s.setEventHandler(handler: handler)
+        _probeLog("create WRITE source fd=\(socket)")
+        nonisolated(unsafe) var n = 0
+        s.setEventHandler { n += 1; if n % 20000 == 1 { _probeLog("WRITE source fired fd=\(socket) n=\(n)") }; handler.perform() }
         writeSource = s as? DispatchSource
         s.resume()
     }
@@ -603,6 +624,9 @@ extension _SocketSources {
                 self.createWriteSource(socket: socket, queue: queue, handler: handler)
             }
         }
+        // PROBE: drop the source curl no longer wants.
+        if getenv("PROBE_NO_CANCEL") == nil, !action.needsWriteSource, let w = writeSource { _probeLog("cancel WRITE source fd=\(socket)"); w.cancel(); writeSource = nil }
+        if getenv("PROBE_NO_CANCEL") == nil, !action.needsReadSource, let r = readSource { _probeLog("cancel READ source fd=\(socket)"); r.cancel(); readSource = nil }
         if action.needsReadSource || action.needsWriteSource {
             handle.schedule(createSources, for: socket)
         }
