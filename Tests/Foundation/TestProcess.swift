@@ -1004,8 +1004,10 @@ class _SignalHelperRunner {
     }
 
     deinit {
-        process.terminate()
-        process.waitUntilExit()
+        if process.isRunning {
+            process.terminate()
+            process.waitUntilExit()
+        }
     }
 
     func start() throws {

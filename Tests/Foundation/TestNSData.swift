@@ -256,12 +256,13 @@ class TestNSData: XCTestCase {
 #endif
     }
 
-    func test_writeToURLSpecialFile() {
+    func test_writeToURLSpecialFile() throws {
+#if os(Android)
+        // Under `adb shell`, opening /dev/stdout fails with EACCES.
+        throw XCTSkip("/dev/stdout is not writable under adb shell")
+#endif
 #if os(Windows)
         let url = URL(fileURLWithPath: "CON")
-#elseif os(Android)
-        // Under `adb shell`, opening /dev/stdout fails with EACCES.
-        let url = URL(fileURLWithPath: "/dev/null")
 #else
         let url = URL(fileURLWithPath: "/dev/stdout")
 #endif
