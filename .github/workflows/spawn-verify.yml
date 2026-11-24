@@ -20,8 +20,12 @@ jobs:
           export PATH=$HOME/$SNAPSHOT-ubuntu24.04/usr/bin:$PATH
           curl -sSL -o $RUNNER_TEMP/sdk.tar.gz https://download.swift.org/development/android-sdk/$SNAPSHOT/${SNAPSHOT}_android.artifactbundle.tar.gz
           swift sdk install $RUNNER_TEMP/sdk.tar.gz
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
-          ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME bash $( (find ~/.swiftpm ~/.config/swiftpm -name setup-android-sdk.sh 2>/dev/null || true) | head -1)
+          # The snapshot SDK is built with NDK r30 (swift-docker build-local).
+          curl -sSL -o $RUNNER_TEMP/ndk.zip https://dl.google.com/android/repository/android-ndk-r30-linux.zip
+          unzip -q $RUNNER_TEMP/ndk.zip -d $RUNNER_TEMP
+          NDK=$RUNNER_TEMP/android-ndk-r30
+          echo "ANDROID_NDK_HOME=$NDK" >> $GITHUB_ENV
+          ANDROID_NDK_HOME=$NDK bash $( (find ~/.swiftpm ~/.config/swiftpm -name setup-android-sdk.sh 2>/dev/null || true) | head -1)
       - name: Headers
         run: bash .github/spawn-verify/headers.sh
       - name: Build tests
