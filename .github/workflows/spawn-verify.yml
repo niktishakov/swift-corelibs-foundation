@@ -1,0 +1,41 @@
+name: Fork test - Process on Android API 26
+
+on:
+  push:
+    branches: [spawn-verify-before, spawn-verify-after]
+
+env:
+  SNAPSHOT: swift-DEVELOPMENT-SNAPSHOT-2026-11-01-a
+
+jobs:
+  android26:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the snapshot toolchain and Android SDK
+        run: |
+          curl -sSL https://download.swift.org/development/ubuntu2404/$SNAPSHOT/$SNAPSHOT-ubuntu24.04.tar.gz | tar -xz -C $HOME
+          echo "$HOME/$SNAPSHOT-ubuntu24.04/usr/bin" >> $GITHUB_PATH
+          export PATH=$HOME/$SNAPSHOT-ubuntu24.04/usr/bin:$PATH
+          curl -sSL -o $RUNNER_TEMP/sdk.tar.gz https://download.swift.org/development/android-sdk/$SNAPSHOT/${SNAPSHOT}_android.artifactbundle.tar.gz
+          swift sdk install $RUNNER_TEMP/sdk.tar.gz
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+          ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME bash $( (find ~/.swiftpm ~/.config/swiftpm -name setup-android-sdk.sh 2>/dev/null || true) | head -1)
+      - name: Headers
+        run: bash .github/spawn-verify/headers.sh
+      - name: Build tests
+        run: bash .github/spawn-verify/build.sh
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Process tests on Android 8 (API 26)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 26
+          arch: x86_64
+          target: default
+          emulator-boot-timeout: 600
+          script: bash .github/spawn-verify/run.sh ${{ runner.temp }}/stage
