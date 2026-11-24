@@ -17,6 +17,10 @@
 
 import Dispatch
 
+#if canImport(Android)
+@preconcurrency import Android
+#endif
+
 class TestFileManager : XCTestCase {
 #if os(Windows)
     let pathSep = "\\"
