@@ -25,6 +25,8 @@ jobs:
           unzip -q $RUNNER_TEMP/ndk.zip -d $RUNNER_TEMP
           NDK=$RUNNER_TEMP/android-ndk-r30
           echo "ANDROID_NDK_HOME=$NDK" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$NDK" >> $GITHUB_ENV
+          echo "ANDROID_NDK_LATEST_HOME=$NDK" >> $GITHUB_ENV
           ANDROID_NDK_HOME=$NDK bash $( (find ~/.swiftpm ~/.config/swiftpm -name setup-android-sdk.sh 2>/dev/null || true) | head -1)
       - name: Headers
         run: bash .github/spawn-verify/headers.sh
