@@ -21,7 +21,8 @@ Cflags: -I$hdr/libxml2/include -DLIBXML_STATIC
 Libs: -L$out/lib -lxml2
 PC
 export PKG_CONFIG_PATH=$out/pc DISPATCH_INCLUDE_PATH=$lib/swift-$arch
-swift build --build-tests --swift-sdk $T --scratch-path $RUNNER_TEMP/build
+ndklib=$(find $ANDROID_NDK_HOME/toolchains/llvm/prebuilt -type d -path "*sysroot/usr/lib/${arch}-linux-android" | head -1)
+swift build --build-tests --swift-sdk $T --scratch-path $RUNNER_TEMP/build -Xlinker -rpath-link -Xlinker $ndklib
 st=$RUNNER_TEMP/stage; mkdir -p $st
 find $RUNNER_TEMP/build \( -name '*.xctest' -o -name '*.bundle' -o -name '*.resources' -o -name '*-test-runner' -o -name '*.so' -o -name xdgTestHelper -o -name plutil \) -not -path '*/checkouts/*' -exec cp -a {} $st/ \;
 cp $lib/swift-$arch/android/*.so $st/
